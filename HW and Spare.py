@@ -8,7 +8,7 @@ import numpy as np
 
 
 def determine_site_vendor(processor):
-    if 'MS_HD' in processor or 'RM_' in processor or 'MS FO' in processor:
+    if 'MS_HD' in processor or 'RM_' in processor or 'MS_FO' in processor:
         return 'MS FM'
     elif 'MTN_NWG_Hardware' in processor:
         return 'MTN HWS'
@@ -57,6 +57,7 @@ TDS['HardwareSpareRelated'] = np.where(
     TDS['RC'].str.contains('HARDWARE') | TDS['RC'].str.contains('SPARE') | TDS['RC'].str.contains('VANDALISM'),
     "Y", "N")
 TDS = TDS[TDS['HardwareSpareRelated'] == 'Y']
+TDS['MTTR'] = pd.to_timedelta(TDS['MTTR'])
 HardwareIssue = pd.merge(TDS, Morning, on= 'Site ID')
 HardwareIssue['Site Vendor'] = HardwareIssue.apply(
     lambda row: row['GSM Vendor'] if row['2G'] or row['3G'] or row['4G'] 
@@ -66,10 +67,19 @@ HardwareIssue['Site Vendor'] = HardwareIssue.apply(
 HardwareIssue = HardwareIssue[['MTTR', 'Ticket ID', 'Title', 'Site ID', '5G', 'TDD', '4G', '3G', '2G', 'Region_x', 'Province_x', 'FFOT', 'Processor', 'Cause', 'GSM Vendor', 'TDD Vendor', 'Site Vendor']]
 
 HardwareIssue['Owner'] = HardwareIssue['Processor'].apply(determine_site_vendor)
+HardwareIssue.rename(columns={'Region_x':'Region', 'Province_x': 'Province', 'MTTR':'Duration', 'Processor':'Team Assigned','Cause':'Root-Cause'}, inplace=True)
+Hardware_Issue = HardwareIssue[['Duration', 'Ticket ID', 'Title', 'Site ID', '5G', 'TDD', '4G', '3G', '2G', 'Region', 'Province', 'FFOT', 'Team Assigned', 'Root-Cause', 'GSM Vendor', 'TDD Vendor']]
+Hardware_Issue['Duration'] = Hardware_Issue['Duration'].apply(lambda x: f"{int(x.total_seconds() // 3600)}:{int((x.total_seconds() % 3600) // 60):02d}")
 
-with pd.ExcelWriter(f"Hardware, Spare & Material Pending cases_ {formatted_date}.xlsx") as writer:
-    HardwareIssue.to_excel(writer, 'Hardware Issue', index=False)
-    Morning.to_excel(writer, 'Morning',  index=False)
+pivot_table = pd.pivot_table(HardwareIssue, 
+                             index=['Region','Owner','Title'] ,
+                             values='Duration', 
+                             aggfunc='sum')
+pivot_table = pivot_table.reset_index()
+pivot_table['Duration'] = pivot_table['Duration'].apply(lambda x: f"{int(x.total_seconds() // 3600)}:{int((x.total_seconds() % 3600) // 60):02d}")
+with pd.ExcelWriter(f"Hardware, Spare & Material Pending cases_ {formatted_date}.xlsx",engine='openpyxl') as writer:
+    Hardware_Issue.to_excel(writer, 'Hardware Issue', index=False)
+    pivot_table.to_excel(writer, 'Dashboard',  index=False)
 # Load the workbook and select the sheet
 wb = load_workbook(f"Hardware, Spare & Material Pending cases_ {formatted_date}.xlsx")
 ws = wb['Hardware Issue']
@@ -89,7 +99,7 @@ ws.add_table(table)
 wb.save(f"Hardware, Spare & Material Pending cases_ {formatted_date}.xlsx")
 # Load the workbook and select the sheet
 wb = load_workbook(f"Hardware, Spare & Material Pending cases_ {formatted_date}.xlsx")
-ws = wb['Morning']
+ws = wb['Dashboard']
 
 # Define the table range and create a table
 table = Table(displayName="Table2", ref=ws.dimensions)
