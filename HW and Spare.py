@@ -5,7 +5,7 @@ import datetime
 from openpyxl import load_workbook
 from openpyxl.worksheet.table import Table, TableStyleInfo
 import numpy as np
-
+import win32com.client as win32
 
 def determine_site_vendor(processor):
     if 'MS_HD' in processor or 'RM_' in processor or 'MS_FO' in processor:
@@ -77,6 +77,13 @@ pivot_table = pd.pivot_table(HardwareIssue,
                              aggfunc='sum')
 pivot_table = pivot_table.reset_index()
 pivot_table['Duration'] = pivot_table['Duration'].apply(lambda x: f"{int(x.total_seconds() // 3600)}:{int((x.total_seconds() % 3600) // 60):02d}")
+
+
+
+
+
+
+
 with pd.ExcelWriter(f"Hardware, Spare & Material Pending cases_ {formatted_date}.xlsx",engine='openpyxl') as writer:
     Hardware_Issue.to_excel(writer, 'Hardware Issue', index=False)
     pivot_table.to_excel(writer, 'Dashboard',  index=False)
@@ -117,3 +124,66 @@ ws.add_table(table)
 
 # Save the workbook
 wb.save(f"Hardware, Spare & Material Pending cases_ {formatted_date}.xlsx")
+Table_HTML = pivot_table.to_html(index=False)
+
+def Email_prepration():
+
+    
+
+   
+    subject = f'Hardware, Spare & Material Pending cases_ {formatted_date}'
+    body = f"""   
+    <html>
+    <body>
+        <p>
+        Dear RMs, <br>
+            &emsp; &emsp;  Please support updating and reducing MS domain, especially for Huawei vendor pending cases. For those out of MS hand, please assign them to the owner counterpart from the MTNi and remove from MS basket.:
+                <br><br>
+        Dear Amin/Spare Team, <br>
+            &emsp; &emsp;  For Spare part pending cases also, would be appreciated for support.
+                <br><br>
+        </p>
+        <style>
+            table {{
+                    width: 15%;
+                    border: 2px solid #2E8B57 ;
+                }}
+                th {{
+                    background-color: #008B8B;
+                    color: #ffffff;
+                    padding:8px;
+                    text-align: center;
+                    font-size: 14;
+                }}
+                td {{
+                    border: 1px solid #dddddd;
+                    padding: 9px;
+                    text-align: center;
+                    font-size: 11;
+                }}
+                tr {{
+                background: #F0FFFF;
+                }}
+                
+        </style>
+       
+        {Table_HTML}
+        
+    
+        </body>
+    </html>
+    """
+
+    current_directory = os.getcwd()
+    # Create the email message
+    outlook = win32.Dispatch('outlook.application')
+    mail = outlook.CreateItem(0)
+    mail.Subject = subject
+    mail.HTMLBody = body
+    mail.to = '''Behrouz Babapour2 <behrouz.babapour2@huawei.com>; Alireza Abadian Fard <alireza.abadian.fard@huawei.com>; Saleh Miyandar <saleh.miyandar1@huawei.com>; Arman Nazari1 <arman.nazari1@huawei.com>; alen avaspian1 <alen.avaspian1@huawei.com>; amir.tamadon1 <amir.tamadon1@huawei.com>; Rouhollah Vahdani <rohollah.vahdani1@huawei.com>; Hamed Jalilvand <hamed.jalilvand@huawei.com>; 'Hashem Alavi' <hashem.alavi@huawei.com>; masoud.nasirinezhad@h-partners.com; Amin Bashiri <amin.bashiri@huawei.com>; Mehdi Mohamadi <mehdi.mohamadi@huawei.com>; Hamed Sarmadian <hamed.sarmadian@huawei.com>; 'Mahdiye Ghaedi' <mahdiye.ghaedi1@huawei.com>; 'Afagh Mehrdana (A' <afagh.mehrdana1@huawei.com>'''
+    mail.CC = '''larry liuyang <larry.liuyang@huawei.com>; Sami Ali3 <sami.ali3@huawei.com>; Sohaib Ahmed <sohaib.ahmed2@huawei.com>; NimaKokhaei <ahmad.kokhaei@huawei.com>; Pedram Rezaei <Pedram.rezaei@huawei.com>; Majid Khabaz1 <majid.khabaz1@huawei.com>; Ali Permoon <ali.permoon@huawei.com>; HawzhinRastbin <Hawzhin.Rastbin@huawei.com>; 'Ahmad Navazeshi (A' <ahmad.navazeshi@huawei.com>; Feizallah Ranjbar <feizallah.ranjbar@huawei.com>; SVMS NOC SLA Supervisor [ MTNIrancell-NWG ] <SVMSNOCSLASupervisor@mtnirancell.ir>'''
+    mail.Attachments.Add(f'C:\\Users\\Mohammad Rahmani\\Documents\\Python\\Hardware, Spare & Material Pending cases_ {formatted_date}.xlsx')
+    # Display the email
+    mail.Display() 
+    
+Email_prepration()
