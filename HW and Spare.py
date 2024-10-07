@@ -26,30 +26,35 @@ current_date = datetime.datetime.now()
 
 # Format the date as "17-Sep-2024"
 formatted_date = current_date.strftime("%d-%b-%Y")
+# get User Name and Password of Exchange email
 credentials = Ex.Credentials(
-    username= 'mohammadhossein.rah@mtnirancell.ir',  # Or me@example.com for O365
-    password='@moh321@rah654'
+    username= 'Email',  # Or me@example.com for O365
+    password='Password'
 )
+#Log in Email
 a = Ex.Account(
-    primary_smtp_address='mohammadhossein.rah@mtnirancell.ir', 
+    primary_smtp_address='Email', 
     credentials=credentials, 
     autodiscover=True, 
     access_type=Ex.DELEGATE
 )
 
-TDS_Folder = a.inbox/'TDS'
-# Print first 100 inbox messages in reverse order
+TDS_Folder = a.inbox/'Folder Name'
+# find The attached email in selected email 
 for item in TDS_Folder.all().order_by('-datetime_received')[:1]:
     for attachment in item.attachments:
         if isinstance(attachment, Ex.FileAttachment) and attachment.name.endswith('.xlsx'):
-            local_path = os.path.join("C:\\Users\\Mohammad Rahmani\\Documents\\Python\\temp", attachment.name)
+            local_path = os.path.join("Location Address", attachment.name)
             with open(local_path, "wb") as f:
                 f.write(attachment.content)
             print("Saved attachment to", local_path)
             TDS = pd.read_excel(local_path,'TDS')
             print("DataFrame loaded successfully")
-url = 'http://10.131.210.29/OSS_Webservices/MORNING_REPORT/uploads/morning.csv'
+#get network data to check some site status
+url = 'Netwok data CSV Link'
 Morning = pd.read_csv(url, encoding='1252')
+
+#Cleaning Repot and make it ready
 TDS = TDS[['MTTR', 'Ticket ID', 'Title', 'Site ID', 'Region', 'Province', 'FFOT', 'Processor', 'Cause', '2G', '3G', '4G', 'TDD', '5G', 'Responsible', 'Vendor']]            
 TDS['RC'] = TDS['Cause'].str.upper()
 TDS = TDS[~TDS['Title'].str.contains('GPS Rec')]
@@ -71,6 +76,8 @@ HardwareIssue.rename(columns={'Region_x':'Region', 'Province_x': 'Province', 'MT
 Hardware_Issue = HardwareIssue[['Duration', 'Ticket ID', 'Title', 'Site ID', '5G', 'TDD', '4G', '3G', '2G', 'Region', 'Province', 'FFOT', 'Team Assigned', 'Root-Cause', 'GSM Vendor', 'TDD Vendor']]
 Hardware_Issue['Duration'] = Hardware_Issue['Duration'].apply(lambda x: f"{int(x.total_seconds() // 3600)}:{int((x.total_seconds() % 3600) // 60):02d}")
 
+
+#Create Pivot table from designed table
 pivot_table = pd.pivot_table(HardwareIssue, 
                              index=['Region','Owner','Title'] ,
                              values='Duration', 
@@ -83,7 +90,7 @@ pivot_table['Duration'] = pivot_table['Duration'].apply(lambda x: f"{int(x.total
 
 
 
-
+#create an excel file and put dfs in it
 with pd.ExcelWriter(f"Hardware, Spare & Material Pending cases_ {formatted_date}.xlsx",engine='openpyxl') as writer:
     Hardware_Issue.to_excel(writer, 'Hardware Issue', index=False)
     pivot_table.to_excel(writer, 'Dashboard',  index=False)
@@ -125,7 +132,7 @@ ws.add_table(table)
 # Save the workbook
 wb.save(f"Hardware, Spare & Material Pending cases_ {formatted_date}.xlsx")
 Table_HTML = pivot_table.to_html(index=False)
-
+#Create Email for this Report
 def Email_prepration():
 
     
@@ -180,10 +187,11 @@ def Email_prepration():
     mail = outlook.CreateItem(0)
     mail.Subject = subject
     mail.HTMLBody = body
-    mail.to = '''Behrouz Babapour2 <behrouz.babapour2@huawei.com>; Alireza Abadian Fard <alireza.abadian.fard@huawei.com>; Saleh Miyandar <saleh.miyandar1@huawei.com>; Arman Nazari1 <arman.nazari1@huawei.com>; alen avaspian1 <alen.avaspian1@huawei.com>; amir.tamadon1 <amir.tamadon1@huawei.com>; Rouhollah Vahdani <rohollah.vahdani1@huawei.com>; Hamed Jalilvand <hamed.jalilvand@huawei.com>; 'Hashem Alavi' <hashem.alavi@huawei.com>; masoud.nasirinezhad@h-partners.com; Amin Bashiri <amin.bashiri@huawei.com>; Mehdi Mohamadi <mehdi.mohamadi@huawei.com>; Hamed Sarmadian <hamed.sarmadian@huawei.com>; 'Mahdiye Ghaedi' <mahdiye.ghaedi1@huawei.com>; 'Afagh Mehrdana (A' <afagh.mehrdana1@huawei.com>'''
-    mail.CC = '''larry liuyang <larry.liuyang@huawei.com>; Sami Ali3 <sami.ali3@huawei.com>; Sohaib Ahmed <sohaib.ahmed2@huawei.com>; NimaKokhaei <ahmad.kokhaei@huawei.com>; Pedram Rezaei <Pedram.rezaei@huawei.com>; Majid Khabaz1 <majid.khabaz1@huawei.com>; Ali Permoon <ali.permoon@huawei.com>; HawzhinRastbin <Hawzhin.Rastbin@huawei.com>; 'Ahmad Navazeshi (A' <ahmad.navazeshi@huawei.com>; Feizallah Ranjbar <feizallah.ranjbar@huawei.com>; SVMS NOC SLA Supervisor [ MTNIrancell-NWG ] <SVMSNOCSLASupervisor@mtnirancell.ir>'''
-    mail.Attachments.Add(f'C:\\Users\\Mohammad Rahmani\\Documents\\Python\\Hardware, Spare & Material Pending cases_ {formatted_date}.xlsx')
+    mail.to = '''Email TO'''
+    mail.CC = '''Email CC'''
+    mail.Attachments.Add('File Name and Location that want to attached')
     # Display the email
     mail.Display() 
     
+#Check email before sending    
 Email_prepration()
