@@ -1,5 +1,5 @@
 # ==============================================
-# Hardware & Spare Pending Cases Report Automation
+# MTNi Hardware & Spare Pending Cases Report Automation
 # ==============================================
 # Author: Mohammad Rahmani
 # Purpose: Automates downloading Exchange email attachments, processes the data,
